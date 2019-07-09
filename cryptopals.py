@@ -354,11 +354,23 @@ class set2:
         checkChallenge(expectedPad, plaintext, "ECBTest")
 
     def challenge3(self):
-        plaintextBytes = strToBytes('Some Random Plaintext')
+        # 5 bytes at start and end. Thus, we need 11 bytes to 
+        # complete first block, 16 for another, 16 for one more so we can
+        # check their equality, and the end doesn't matter here
+        plaintextBytes = strToBytes('A' * 43)
 
-        for _ in range(50):
+        for _ in range(100):
             ciphertext, mode = blockCipherRandomEncrypter(plaintextBytes)
-            guessedMode = blockCipherOracle(ciphertext)
+
+            # Add each block to a set. If the set is smaller than the 
+            # number of 16-byte blocks, then there was a repeat block, therefore
+            # it must be ECB since our plaintext is long enough to have repeats
+            uniqueBlocks = set()
+            [uniqueBlocks.add(block) for block in grouper(16, ciphertext)]
+
+            guessedMode = "CBC"
+            if len(uniqueBlocks) < len(ciphertext) / 16:
+                guessedMode = "ECB"
             checkChallenge(mode, guessedMode, 3)
 
     def testSet2(self):
