@@ -1,6 +1,7 @@
 from binascii import b2a_base64, a2b_base64
 from itertools import cycle, zip_longest
 from Cryptodome.Cipher import AES
+from Cryptodome.Random import get_random_bytes, random
 import copy 
 
 def hexStrToBase64Str(hex):
@@ -216,7 +217,7 @@ class set1:
         key = 'YELLOW SUBMARINE'
 
         encBytes = hexStrToBytes(base64ToHexStr(b64Data))
-        bArrKey = bytearray(strToBytes(key))
+        bArrKey = strToBytes(key)
 
         plaintext = ecbDecrypt(encBytes, bArrKey)
 
@@ -287,10 +288,9 @@ def grouper(n, iterable):
     args = [iter(iterable)] * n
     return zip_longest(*args)
 
-def cbcEncrypt(plaintextBytes, key):
-    initVect = bytearray([0] * 16)
+def cbcEncrypt(plaintextBytes, key, IV = bytearray([0] * 16)):
     pTextPad = pkcsPad(plaintextBytes, 16)
-    prevEncBytes = initVect
+    prevEncBytes = IV 
 
     cipherBytes = bytearray()
     for block in grouper(16, pTextPad):
@@ -301,9 +301,8 @@ def cbcEncrypt(plaintextBytes, key):
 
     return cipherBytes
 
-def cbcDecrypt(encBytes, key):
-    initVect = bytearray([0] * 16)
-    prevEncBytes = initVect
+def cbcDecrypt(encBytes, key, IV = bytearray([0] * 16)):
+    prevEncBytes = IV 
 
     decBytes = bytearray()
     for block in [bytearray(nonBytes) for nonBytes in grouper(16, encBytes)]:
@@ -314,13 +313,27 @@ def cbcDecrypt(encBytes, key):
 
     return decBytes
 
+def blockCipherRandomEncrypter(pTextBytes):
+    randKey = bytearray(get_random_bytes(16))
+    randByteCount = random.randint(5, 10)
+    randBytesStart = bytearray(get_random_bytes(randByteCount))
+    randBytesEnd = bytearray(get_random_bytes(randByteCount))
+
+    bytesToEnc = pkcsPad(randBytesStart + pTextBytes + randBytesEnd, 16)
+    if random.randint(0, 1) == 0:
+        #use ECB
+        return ecbEncrypt(bytesToEnc, randKey), "ECB"
+    else:
+        #use CBC
+        return cbcEncrypt(bytesToEnc, randKey, bytearray(get_random_bytes(16))), "CBC"
+
 class set2:
     def challenge1(self):
         text = 'YELLOW SUBMARINE'
         bArr = strToBytes(text)
         paddedArr = pkcsPad(bArr, 20)
 
-        expected = bytearray(strToBytes('YELLOW SUBMARINE\x04\x04\x04\x04'))
+        expected = strToBytes('YELLOW SUBMARINE\x04\x04\x04\x04')
         checkChallenge(expected, paddedArr, 1)
 
     def challenge2(self):
@@ -343,7 +356,7 @@ class set2:
     def challenge3(self):
         plaintextBytes = strToBytes('Some Random Plaintext')
 
-        for numTests in range(50):
+        for _ in range(50):
             ciphertext, mode = blockCipherRandomEncrypter(plaintextBytes)
             guessedMode = blockCipherOracle(ciphertext)
             checkChallenge(mode, guessedMode, 3)
