@@ -340,11 +340,19 @@ class set2:
 
         checkChallenge(expectedPad, plaintext, "ECBTest")
 
+    def challenge3(self):
+        plaintextBytes = strToBytes('Some Random Plaintext')
+
+        for numTests in range(50):
+            ciphertext, mode = blockCipherRandomEncrypter(plaintextBytes)
+            guessedMode = blockCipherOracle(ciphertext)
+            checkChallenge(mode, guessedMode, 3)
+
     def testSet2(self):
         self.challenge1()
         self.testEcbEncryptDecrypt()
         self.challenge2()
-
+        self.challenge3()
 
 if __name__ == '__main__':
     print('Testing Set 1')
