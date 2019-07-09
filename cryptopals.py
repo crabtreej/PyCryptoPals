@@ -19,7 +19,7 @@ def bytesToStr(byteArr):
     return byteArr.decode('ascii')
 
 def strToBytes(text):
-    return bytes(text, 'ascii')
+    return bytearray(bytes(text, 'ascii'))
 
 def xorBytes(bArr1, bArr2):
     xorBytes = bytearray()
@@ -238,7 +238,7 @@ class set1:
 
                 chunked = []
                 for i in range(0, len(byteArr), 16):
-                    chunked.append(bytes(byteArr[i:i+16]))
+                    chunked.append(byteArr[i:i+16])
 
                 score = 0
                 for i in range(len(chunked)):
@@ -281,7 +281,6 @@ def pkcsPad(block, boundary):
         padSize = boundary - len(block) % boundary
 
     paddedBlock.extend([padSize] * padSize)
-    print(len(paddedBlock))
     return paddedBlock
 
 def grouper(n, iterable):
@@ -289,7 +288,7 @@ def grouper(n, iterable):
     return zip_longest(*args)
 
 def cbcEncrypt(plaintextBytes, key):
-    initVect = bytes([0] * 16)
+    initVect = bytearray([0] * 16)
     pTextPad = pkcsPad(plaintextBytes, 16)
     prevEncBytes = initVect
 
@@ -303,12 +302,12 @@ def cbcEncrypt(plaintextBytes, key):
     return cipherBytes
 
 def cbcDecrypt(encBytes, key):
-    initVect = bytes([0] * 16)
+    initVect = bytearray([0] * 16)
     prevEncBytes = initVect
 
     decBytes = bytearray()
-    for block in grouper(16, encBytes):
-        decXorBlock = ecbDecrypt(bytearray(block), key)
+    for block in [bytearray(nonBytes) for nonBytes in grouper(16, encBytes)]:
+        decXorBlock = ecbDecrypt(block, key)
         decPlainBlock = xorBytes(decXorBlock, prevEncBytes)
         decBytes.extend(decPlainBlock)
         prevEncBytes = block
@@ -318,7 +317,7 @@ def cbcDecrypt(encBytes, key):
 class set2:
     def challenge1(self):
         text = 'YELLOW SUBMARINE'
-        bArr = bytearray(strToBytes(text))
+        bArr = strToBytes(text)
         paddedArr = pkcsPad(bArr, 20)
 
         expected = bytearray(strToBytes('YELLOW SUBMARINE\x04\x04\x04\x04'))
@@ -334,8 +333,8 @@ class set2:
         checkChallenge(expected, decBytes, 2)
 
     def testEcbEncryptDecrypt(self):
-        keyBytesPad = pkcsPad(bytearray(strToBytes("ICE")), 16)
-        expectedPad = pkcsPad(bytearray(strToBytes("Bringin' the noise")), 16)
+        keyBytesPad = pkcsPad(strToBytes("ICE"), 16)
+        expectedPad = pkcsPad(strToBytes("Bringin' the noise"), 16)
         encBytes = ecbEncrypt(expectedPad, keyBytesPad)
         plaintext = ecbDecrypt(encBytes, keyBytesPad)
 
