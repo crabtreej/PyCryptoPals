@@ -153,7 +153,7 @@ def ecbDecrypt(encBytes, keyBytes):
 
 def ecbEncrypt(encBytes, keyBytes):
     cipher = AES.new(keyBytes, AES.MODE_ECB)
-    return cipher.encrypt(pkcsPad(encBytes)
+    return cipher.encrypt(encBytes)
 
 class set1:
     def challenge1(self):
@@ -271,13 +271,17 @@ class set1:
         self.challenge7()
         self.challenge8()
 
-def pkcsPad(block, size):
-    padVal = size - len(block)
+def pkcsPad(block, boundary):
+    padSize = 0 
     paddedBlock = copy.copy(block)
-    if size <= 0:
-        return paddedBlock
 
-    paddedBlock.extend([padVal] * padVal)
+    if len(block) < boundary:
+        padSize = boundary - len(block)
+    elif len(block) > boundary:
+        padSize = boundary - len(block) % boundary
+
+    paddedBlock.extend([padSize] * padSize)
+    print(len(paddedBlock))
     return paddedBlock
 
 def grouper(n, iterable):
@@ -286,7 +290,7 @@ def grouper(n, iterable):
 
 def cbcEncrypt(plaintextBytes, key):
     initVect = bytes([0] * 16)
-    pTextPad = pkcsPad(plaintextBytes, len(plaintextBytes) % 16)
+    pTextPad = pkcsPad(plaintextBytes, 16)
     prevEncBytes = initVect
 
     cipherBytes = bytearray()
@@ -331,7 +335,7 @@ class set2:
 
     def testEcbEncryptDecrypt(self):
         keyBytesPad = pkcsPad(bytearray(strToBytes("ICE")), 16)
-        expectedPad = pkcsPad(bytearray(strToBytes("Bringin' the noise")), 32)
+        expectedPad = pkcsPad(bytearray(strToBytes("Bringin' the noise")), 16)
         encBytes = ecbEncrypt(expectedPad, keyBytesPad)
         plaintext = ecbDecrypt(encBytes, keyBytesPad)
 
