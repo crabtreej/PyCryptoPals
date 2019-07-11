@@ -12,7 +12,7 @@ def pkcsPad(block, boundary):
     if len(block) < boundary:
         padSize = boundary - len(block)
     elif len(block) > boundary:
-        padSize = boundary - len(block) % boundary
+        padSize = (boundary - len(block) % boundary) % boundary
 
     paddedBlock.extend([padSize] * padSize)
     return paddedBlock
@@ -26,8 +26,9 @@ def ecbDecrypt(encBytes, keyBytes):
     return cipher.decrypt(encBytes)
 
 def ecbEncrypt(encBytes, keyBytes):
+    encBytesPad = pkcsPad(encBytes, 16)
     cipher = AES.new(keyBytes, AES.MODE_ECB)
-    return cipher.encrypt(encBytes)
+    return cipher.encrypt(encBytesPad)
 
 def cbcEncrypt(plaintextBytes, key, IV = bytearray([0] * 16)):
     pTextPad = pkcsPad(plaintextBytes, 16)
@@ -102,3 +103,31 @@ def determineBlockCipherType(unknownModeCipherFunc):
         guessedMode = "ECB"
 
     return guessedMode
+
+def determineEcbBlockSize(unknownCipher):
+    # Start at a reasonable size like 8
+    # Once we see our chosen plaintext repeat entirely, we've found
+    # the block size because it's in ecb mode
+    for i in range(8, 128):
+        pTextBytes = conv.strToBytes("A" * i)
+        encBytes = unknownCipher(pTextBytes)
+
+        # It padded out just to len(encBytes), so that's block size
+        if len(encBytes) < i * 2:
+            return len(encBytes)
+
+        # If we have an entire repeat block, we've found it
+        uniqueBlocks = set()
+        [uniqueBlocks.add(block) for block in grouper(i, encBytes)]
+
+
+def ecbAppendUnknownText(pTextBytes):
+    # Doesn't really matter what the key is
+    fixedKey = conv.strToBytes("AB-WN10XM0c;'aHl")
+    # Append mystery text to all plaintext
+    bytesToEnc = pTextBytes + conv.hexStrToBytes(conv.base64ToHexStr("Um9sbGluJy"
+        + "BpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaG"
+        + "FpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdml"
+        + "uZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK"))
+
+    return ecbEncrypt(bytesToEnc, fixedKey)

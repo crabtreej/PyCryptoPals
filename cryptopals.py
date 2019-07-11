@@ -166,6 +166,8 @@ class set2:
             checkChallenge(randCipher.lastMode, guessedMode, 3)
 
     def challenge4(self):
+        myStrBytes = conv.strToBytes('this is a known string')
+        blockTools.ecbAppendUnknownText(conv.strToBytes('abc'))
         checkChallenge('unimplemented', '', 4)
 
     def testSet2(self):
