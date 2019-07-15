@@ -165,9 +165,15 @@ class set2:
             guessedMode = blockTools.determineBlockCipherType(randCipher.EncryptRandomCipher)
             checkChallenge(randCipher.lastMode, guessedMode, 3)
 
+    def findBlockCipherSizeTest(self):
+        knownSize = 16
+        guessedSize = blockTools.determineBlockCipherSize(blockTools.ecbAppendUnknownText)
+        checkChallenge(knownSize, guessedSize, "ECBSizeTest")
+
+        guessedSize = blockTools.determineBlockCipherSize(blockTools.cbcEncrypt)
+        checkChallenge(knownSize, guessedSize, "CBCSizeTest")
+
     def challenge4(self):
-        myStrBytes = conv.strToBytes('this is a known string')
-        blockTools.ecbAppendUnknownText(conv.strToBytes('abc'))
         checkChallenge('unimplemented', '', 4)
 
     def testSet2(self):
@@ -175,6 +181,7 @@ class set2:
         self.testEcbEncryptDecrypt()
         self.challenge2()
         self.challenge3()
+        self.findBlockCipherSizeTest()
         self.challenge4()
 
 if __name__ == '__main__':

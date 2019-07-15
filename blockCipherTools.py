@@ -25,12 +25,12 @@ def ecbDecrypt(encBytes, keyBytes):
     cipher = AES.new(keyBytes, AES.MODE_ECB)
     return cipher.decrypt(encBytes)
 
-def ecbEncrypt(encBytes, keyBytes):
+def ecbEncrypt(encBytes, keyBytes = bytearray([0] * 16)):
     encBytesPad = pkcsPad(encBytes, 16)
     cipher = AES.new(keyBytes, AES.MODE_ECB)
     return cipher.encrypt(encBytesPad)
 
-def cbcEncrypt(plaintextBytes, key, IV = bytearray([0] * 16)):
+def cbcEncrypt(plaintextBytes, key = bytearray([0] * 16), IV = bytearray([0] * 16)):
     pTextPad = pkcsPad(plaintextBytes, 16)
     prevEncBytes = IV 
 
@@ -104,22 +104,29 @@ def determineBlockCipherType(unknownModeCipherFunc):
 
     return guessedMode
 
-def determineEcbBlockSize(unknownCipher):
-    # Start at a reasonable size like 8
-    # Once we see our chosen plaintext repeat entirely, we've found
-    # the block size because it's in ecb mode
-    for i in range(8, 128):
+def determineBlockCipherSize(unknownCipher):
+    # Find out how long it pads to with the shortest possible string
+    initialLen = len(unknownCipher(conv.strToBytes("A")))
+
+    # Need to see it increase in size twice
+    firstSizeInc = secondSizeInc = None
+
+    for i in range(2, 50):
+        #Pass progressively longer strings into the cipher to see the size change
         pTextBytes = conv.strToBytes("A" * i)
         encBytes = unknownCipher(pTextBytes)
 
-        # It padded out just to len(encBytes), so that's block size
-        if len(encBytes) < i * 2:
-            return len(encBytes)
+        # Once we see the size increase the first time, we have a baseline for the block size
+        if firstSizeInc is None and len(encBytes) > initialLen:
+            firstSizeInc = len(encBytes)
+        elif firstSizeInc is not None and len(encBytes) > firstSizeInc:
+            # When the size increases the second time, we now know that the size must be 
+            # the length at the first increase - length at this second increase
+            secondSizeInc = len(encBytes)
+            break
 
-        # If we have an entire repeat block, we've found it
-        uniqueBlocks = set()
-        [uniqueBlocks.add(block) for block in grouper(i, encBytes)]
-
+    # return the second observed length increase - first length increase = block size
+    return secondSizeInc - firstSizeInc
 
 def ecbAppendUnknownText(pTextBytes):
     # Doesn't really matter what the key is
